@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>シフト提出</title>
+  <style>
+    :root {
+      --bg: #f7f8fc;
+      --card: #ffffff;
+      --text: #222;
+      --muted: #6b7280;
+      --line: #e5e7eb;
+      --accent: #2563eb;
+      --accent-soft: #dbeafe;
+      --danger: #dc2626;
+      --ok: #16a34a;
+      --info: #1d4ed8;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Hiragino Sans", "Noto Sans JP", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+    }
+
+    .wrap {
+      max-width: 920px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      padding: 20px;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.04);
+      margin-bottom: 16px;
+    }
+
+    h1 {
+      font-size: 1.8rem;
+      margin: 0 0 8px;
+    }
+
+    h2 {
+      margin: 0 0 12px;
+      font-size: 1.2rem;
+    }
+
+    .sub {
+      color: var(--muted);
+      margin: 0;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    label {
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+
+    input,
+    select,
+    button,
+    textarea {
+      font: inherit;
+    }
+
+    input[type="date"],
+    select,
+    textarea {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #fff;
+    }
+
+    textarea {
+      min-height: 90px;
+      resize: vertical;
+    }
+
+    .week-box {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      padding: 14px;
+      background: #fafafa;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      justify-content: center;
+    }
+
+    .week-text {
+      font-weight: 700;
+      color: var(--accent);
+      font-size: 1rem;
+    }
+
+    .small {
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+
+    .confirm-box {
+      background: #f8fafc;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 12px 14px;
+      color: #334155;
+      font-size: 0.95rem;
+      margin-top: 8px;
+    }
+
+    .shift-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .shift-item {
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 14px;
+      background: #fcfcfd;
+    }
+
+    .shift-item-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+
+    .shift-date {
+      font-weight: 700;
+      font-size: 1rem;
+    }
+
+    .shift-date-sub {
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+
+    .rest-badge {
+      display: inline-block;
+      font-size: 0.8rem;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: #f3f4f6;
+      color: #4b5563;
+    }
+
+    .time-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .time-label {
+      font-size: 0.88rem;
+      font-weight: 600;
+      margin-bottom: 6px;
+      display: block;
+    }
+
+    .time-input {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #fff;
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    button {
+      border: none;
+      border-radius: 12px;
+      padding: 12px 18px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .primary {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    .secondary {
+      background: #eef2ff;
+      color: #1e3a8a;
+    }
+
+    .status {
+      margin-top: 12px;
+      font-weight: 600;
+      padding: 12px 14px;
+      border-radius: 12px;
+      display: none;
+    }
+
+    .status.show {
+      display: block;
+    }
+
+    .error {
+      color: var(--danger);
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+    }
+
+    .success {
+      color: var(--ok);
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+    }
+
+    .info {
+      color: var(--info);
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+    }
+
+    @media (max-width: 700px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+
+      .wrap {
+        padding: 14px;
+      }
+
+      .card {
+        padding: 16px;
+        border-radius: 16px;
+      }
+
+      h1 {
+        font-size: 1.5rem;
+      }
+
+      .time-row {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h1>シフト提出</h1>
+      <p class="sub">名前と週を選んで、出勤時間を入力して送信してください。</p>
+    </div>
+
+    <form id="shiftForm">
+      <div class="card">
+        <div class="field">
+          <label for="employeeName">氏名</label>
+          <select id="employeeName" name="employeeName" required disabled>
+            <option value="">読み込み中...</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="grid">
+          <div class="field">
+            <label for="weekStart">週の開始日</label>
+            <input id="weekStart" name="weekStart" type="date" required />
+          </div>
+
+          <div class="week-box">
+            <span class="small">提出対象週</span>
+            <span class="week-text" id="weekRange">日付を選ぶとここに表示されます</span>
+          </div>
+        </div>
+        <div class="confirm-box" id="confirmText">氏名と週を選ぶと、ここに確認メッセージが表示されます。</div>
+      </div>
+
+      <div class="card">
+        <h2>出勤希望</h2>
+        <div id="shiftRows" class="shift-list"></div>
+      </div>
+
+      <div class="card">
+        <div class="field">
+          <label for="memo">備考</label>
+          <textarea id="memo" name="memo" placeholder="備考があれば入力してください"></textarea>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="btn-row">
+          <button type="submit" class="primary">送信する</button>
+          <button type="button" class="secondary" id="fillSample">サンプル入力</button>
+        </div>
+        <div id="status" class="status"></div>
+      </div>
+    </form>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      let EMPLOYEES = [];
+
+      const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzeegzxkptC51BfY0Lrhfc31jt7DTF5apncZsr494W9bS_DoyTxenCJPYxhGSA469e6/exec';
+      const JP_DAYS = ['日','月','火','水','木','金','土'];
+
+      const employeeNameSelect = document.getElementById('employeeName');
+      const weekStartInput = document.getElementById('weekStart');
+      const weekRange = document.getElementById('weekRange');
+      const confirmText = document.getElementById('confirmText');
+      const shiftRows = document.getElementById('shiftRows');
+      const statusEl = document.getElementById('status');
+      const form = document.getElementById('shiftForm');
+      const fillSampleBtn = document.getElementById('fillSample');
+      const memoInput = document.getElementById('memo');
+
+      function buildTimeOptions() {
+        let options = '<option value="">休み</option>';
+        for (let hour = 6; hour <= 34; hour++) {
+          for (let minute = 0; minute < 60; minute += 30) {
+            if (hour === 34 && minute > 0) continue;
+            const hh = String(hour).padStart(2, '0');
+            const mm = String(minute).padStart(2, '0');
+            const value = `${hh}:${mm}`;
+            options += `<option value="${value}">${value}</option>`;
+          }
+        }
+        return options;
+      }
+
+      function formatDate(date) {
+        const m = date.getMonth() + 1;
+        const d = date.getDate();
+        const w = JP_DAYS[date.getDay()];
+        return `${m}月${d}日（${w}）`;
+      }
+
+      function isoDate(date) {
+        const y = date.getFullYear();
+        const m = String(date.getMonth() + 1).padStart(2, '0');
+        const d = String(date.getDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
+      }
+
+      function getMonday(dateStr) {
+        const date = new Date(`${dateStr}T00:00:00`);
+        const day = date.getDay();
+        const diff = day === 0 ? -6 : 1 - day;
+        date.setDate(date.getDate() + diff);
+        return date;
+      }
+
+      function populateEmployees() {
+        employeeNameSelect.innerHTML = '<option value="">選択してください</option>';
+
+        EMPLOYEES.forEach((name) => {
+          const option = document.createElement('option');
+          option.value = name;
+          option.textContent = name;
+          employeeNameSelect.appendChild(option);
+        });
+
+        employeeNameSelect.disabled = false;
+      }
+
+      async function loadEmployees() {
+        if (!GAS_WEB_APP_URL) {
+          setStatus('スタッフ一覧を取得できません。URLを確認してください。', 'error');
+          employeeNameSelect.innerHTML = '<option value="">取得失敗</option>';
+          return;
+        }
+
+        try {
+          const url = `${GAS_WEB_APP_URL}?mode=employees`;
+          const response = await fetch(url, { method: 'GET' });
+          const result = await response.json();
+
+          if (!result.ok || !Array.isArray(result.employees)) {
+            throw new Error('スタッフ一覧の取得に失敗しました。');
+          }
+
+          EMPLOYEES = result.employees;
+          populateEmployees();
+          updateConfirmText();
+        } catch (err) {
+          employeeNameSelect.innerHTML = '<option value="">取得失敗</option>';
+          employeeNameSelect.disabled = true;
+          setStatus('スタッフ一覧を読み込めませんでした。', 'error');
+          console.error(err);
+        }
+      }
+
+      function updateConfirmText() {
+        const name = employeeNameSelect.value || '未選択';
+        const weekStart = weekStartInput.value;
+
+        if (!weekStart) {
+          confirmText.textContent = `${name} さんとして提出します。週の開始日を選んでください。`;
+          return;
+        }
+
+        const start = new Date(`${weekStart}T00:00:00`);
+        const end = new Date(start);
+        end.setDate(start.getDate() + 6);
+
+        confirmText.textContent = `${name} さんとして ${formatDate(start)} 〜 ${formatDate(end)} のシフトを提出します。`;
+      }
+
+      function updateRestBadges() {
+        for (let i = 0; i < 7; i++) {
+          const startSelect = document.querySelector(`select[name="start-${i}"]`);
+          const endSelect = document.querySelector(`select[name="end-${i}"]`);
+          const badge = document.querySelector(`[data-rest-badge="${i}"]`);
+
+          if (!badge || !startSelect || !endSelect) continue;
+
+          if (!startSelect.value && !endSelect.value) {
+            badge.textContent = '休み';
+          } else {
+            badge.textContent = '出勤';
+          }
+        }
+      }
+
+      function createWeekRows(startDateStr) {
+        shiftRows.innerHTML = '';
+
+        if (!startDateStr) {
+          weekRange.textContent = '日付を選ぶとここに表示されます';
+          updateConfirmText();
+          return;
+        }
+
+        const monday = getMonday(startDateStr);
+        const mondayStr = isoDate(monday);
+
+        if (weekStartInput.value !== mondayStr) {
+          weekStartInput.value = mondayStr;
+        }
+
+        const start = new Date(`${mondayStr}T00:00:00`);
+        const end = new Date(start);
+        end.setDate(start.getDate() + 6);
+
+        weekRange.textContent = `${formatDate(start)} 〜 ${formatDate(end)}`;
+
+        for (let i = 0; i < 7; i++) {
+          const date = new Date(start);
+          date.setDate(start.getDate() + i);
+          const dateKey = isoDate(date);
+
+          const item = document.createElement('div');
+          item.className = 'shift-item';
+          item.innerHTML = `
+            <div class="shift-item-head">
+              <div>
+                <div class="shift-date">${formatDate(date)}</div>
+                <div class="shift-date-sub">${dateKey}</div>
+              </div>
+              <span class="rest-badge" data-rest-badge="${i}">休み</span>
+            </div>
+
+            <div class="time-row">
+              <div>
+                <label class="time-label" for="start-${i}">出勤時間</label>
+                <select class="time-input" id="start-${i}" name="start-${i}">
+                  ${buildTimeOptions()}
+                </select>
+              </div>
+
+              <div>
+                <label class="time-label" for="end-${i}">退勤時間</label>
+                <select class="time-input" id="end-${i}" name="end-${i}">
+                  ${buildTimeOptions()}
+                </select>
+              </div>
+            </div>
+          `;
+
+          shiftRows.appendChild(item);
+        }
+
+        for (let i = 0; i < 7; i++) {
+          const startSelect = document.querySelector(`select[name="start-${i}"]`);
+          const endSelect = document.querySelector(`select[name="end-${i}"]`);
+
+          if (startSelect) {
+            startSelect.addEventListener('change', updateRestBadges);
+          }
+          if (endSelect) {
+            endSelect.addEventListener('change', updateRestBadges);
+          }
+        }
+
+        updateRestBadges();
+        updateConfirmText();
+      }
+
+      function collectPayload() {
+        const weekStart = weekStartInput.value;
+        const employeeName = employeeNameSelect.value;
+        const memo = memoInput.value.trim();
+
+        if (!employeeName) {
+          throw new Error('氏名を選んでください。');
+        }
+
+        if (!weekStart) {
+          throw new Error('週の開始日を選んでください。');
+        }
+
+        const days = [];
+        const start = new Date(`${weekStart}T00:00:00`);
+
+        for (let i = 0; i < 7; i++) {
+          const date = new Date(start);
+          date.setDate(start.getDate() + i);
+
+          const startSelect = document.querySelector(`select[name="start-${i}"]`);
+          const endSelect = document.querySelector(`select[name="end-${i}"]`);
+
+          const startValue = startSelect.value;
+          const endValue = endSelect.value;
+
+          if ((startValue && !endValue) || (!startValue && endValue)) {
+            throw new Error(`${formatDate(date)} は出勤時間と退勤時間をセットで入れてください。`);
+          }
+
+          days.push({
+            index: i,
+            date: isoDate(date),
+            label: formatDate(date),
+            available: startValue && endValue ? '○' : '×',
+            start: startValue,
+            end: endValue
+          });
+        }
+
+        return {
+          submittedAt: new Date().toISOString(),
+          employeeName,
+          weekStart,
+          weekEnd: days[6].date,
+          memo,
+          days
+        };
+      }
+
+      function setStatus(message, type = '') {
+        if (!message) {
+          statusEl.textContent = '';
+          statusEl.className = 'status';
+          return;
+        }
+
+        statusEl.textContent = message;
+        statusEl.className = `status show ${type}`.trim();
+      }
+
+      async function submitToGAS(payload) {
+        await fetch(GAS_WEB_APP_URL, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify(payload)
+        });
+
+        return true;
+      }
+
+      function resetFormPreserveEmployees() {
+        const selectedName = employeeNameSelect.value;
+        form.reset();
+        employeeNameSelect.value = selectedName;
+        createWeekRows('');
+      }
+
+      function fillSample() {
+        if (!weekStartInput.value) {
+          const today = new Date();
+          const monday = getMonday(isoDate(today));
+          weekStartInput.value = isoDate(monday);
+          createWeekRows(weekStartInput.value);
+        }
+
+        if (EMPLOYEES.length > 0) {
+          employeeNameSelect.value = EMPLOYEES[0];
+        }
+
+        memoInput.value = '水曜は少し遅れる可能性があります。';
+
+        const setWorkingDay = (i, startValue, endValue) => {
+          const startSelect = document.querySelector(`select[name="start-${i}"]`);
+          const endSelect = document.querySelector(`select[name="end-${i}"]`);
+
+          if (startSelect && endSelect) {
+            startSelect.value = startValue;
+            endSelect.value = endValue;
+          }
+        };
+
+        setWorkingDay(0, '09:00', '18:00');
+        setWorkingDay(2, '13:00', '22:00');
+        setWorkingDay(4, '09:00', '17:00');
+        updateRestBadges();
+        updateConfirmText();
+      }
+
+      function runSelfTests() {
+        const options = buildTimeOptions();
+        console.assert(options.includes('06:00'), '06:00 が候補に含まれるべきです');
+        console.assert(options.includes('34:00'), '34:00 が候補に含まれるべきです');
+        console.assert(!options.includes('34:30'), '34:30 は候補に含まれないべきです');
+
+        const testDate = new Date('2026-03-10T00:00:00');
+        console.assert(isoDate(testDate) === '2026-03-10', 'isoDate の変換結果が想定と違います');
+        console.assert(formatDate(testDate) === '3月10日（火）', 'formatDate の表示結果が想定と違います');
+      }
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        setStatus('');
+
+        try {
+          const payload = collectPayload();
+
+          if (!GAS_WEB_APP_URL) {
+            console.log('送信データ', payload);
+            setStatus('保存先URLが未設定のため、今回は送信データを確認用に出しました。', 'info');
+            return;
+          }
+
+          setStatus('送信中です…', 'info');
+          await submitToGAS(payload);
+
+          resetFormPreserveEmployees();
+          setStatus('送信しました。シフト提出が完了しました。', 'success');
+        } catch (err) {
+          setStatus(err.message || '送信に失敗しました。', 'error');
+        }
+      });
+
+      fillSampleBtn.addEventListener('click', fillSample);
+      employeeNameSelect.addEventListener('change', updateConfirmText);
+      weekStartInput.addEventListener('change', (e) => createWeekRows(e.target.value));
+
+      createWeekRows('');
+      updateConfirmText();
+      runSelfTests();
+      loadEmployees();
+    });
+  </script>
+</body>
+</html>
