@@ -12,7 +12,6 @@
       --muted: #6b7280;
       --line: #e5e7eb;
       --accent: #2563eb;
-      --accent-soft: #dbeafe;
       --danger: #dc2626;
       --ok: #16a34a;
       --info: #1d4ed8;
@@ -83,6 +82,7 @@
     }
 
     input[type="date"],
+    input[type="password"],
     select,
     textarea {
       width: 100%;
@@ -212,11 +212,6 @@
       color: #fff;
     }
 
-    .secondary {
-      background: #eef2ff;
-      color: #1e3a8a;
-    }
-
     .status {
       margin-top: 12px;
       font-weight: 600;
@@ -275,16 +270,31 @@
   <div class="wrap">
     <div class="card">
       <h1>シフト提出</h1>
-      <p class="sub">名前と週を選んで、出勤時間を入力して送信してください。</p>
+      <p class="sub">名前・確認コード・週を選んで、出勤時間を入力して送信してください。</p>
     </div>
 
     <form id="shiftForm">
       <div class="card">
-        <div class="field">
-          <label for="employeeName">氏名</label>
-          <select id="employeeName" name="employeeName" required disabled>
-            <option value="">読み込み中...</option>
-          </select>
+        <div class="grid">
+          <div class="field">
+            <label for="employeeName">氏名</label>
+            <select id="employeeName" name="employeeName" required disabled>
+              <option value="">読み込み中...</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="employeeCode">確認コード</label>
+            <input
+              id="employeeCode"
+              name="employeeCode"
+              type="password"
+              inputmode="numeric"
+              maxlength="6"
+              placeholder="6桁コード"
+              required
+            />
+          </div>
         </div>
       </div>
 
@@ -311,14 +321,13 @@
       <div class="card">
         <div class="field">
           <label for="memo">備考</label>
-          <textarea id="memo" name="memo" placeholder="備考があれば入力してください"></textarea>
+          <textarea id="memo" name="memo" placeholder="18:30希望など細かい調整があれば入力してください"></textarea>
         </div>
       </div>
 
       <div class="card">
         <div class="btn-row">
           <button type="submit" class="primary">送信する</button>
-          <button type="button" class="secondary" id="fillSample">サンプル入力</button>
         </div>
         <div id="status" class="status"></div>
       </div>
@@ -329,30 +338,30 @@
     document.addEventListener('DOMContentLoaded', () => {
       let EMPLOYEES = [];
 
-      const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzeegzxkptC51BfY0Lrhfc31jt7DTF5apncZsr494W9bS_DoyTxenCJPYxhGSA469e6/exec';
-      const JP_DAYS = ['日','月','火','水','木','金','土'];
+      const GAS_WEB_APP_URL =
+        'https://script.google.com/macros/s/AKfycbzeegzxkptC51BfY0Lrhfc31jt7DTF5apncZsr494W9bS_DoyTxenCJPYxhGSA469e6/exec';
+
+      const JP_DAYS = ['日', '月', '火', '水', '木', '金', '土'];
 
       const employeeNameSelect = document.getElementById('employeeName');
+      const employeeCodeInput = document.getElementById('employeeCode');
       const weekStartInput = document.getElementById('weekStart');
       const weekRange = document.getElementById('weekRange');
       const confirmText = document.getElementById('confirmText');
       const shiftRows = document.getElementById('shiftRows');
       const statusEl = document.getElementById('status');
       const form = document.getElementById('shiftForm');
-      const fillSampleBtn = document.getElementById('fillSample');
       const memoInput = document.getElementById('memo');
 
       function buildTimeOptions() {
         let options = '<option value="">休み</option>';
+
         for (let hour = 6; hour <= 34; hour++) {
-          for (let minute = 0; minute < 60; minute += 30) {
-            if (hour === 34 && minute > 0) continue;
-            const hh = String(hour).padStart(2, '0');
-            const mm = String(minute).padStart(2, '0');
-            const value = `${hh}:${mm}`;
-            options += `<option value="${value}">${value}</option>`;
-          }
+          const hh = String(hour).padStart(2, '0');
+          const value = `${hh}:00`;
+          options += `<option value="${value}">${value}</option>`;
         }
+
         return options;
       }
 
@@ -381,7 +390,7 @@
       function populateEmployees() {
         employeeNameSelect.innerHTML = '<option value="">選択してください</option>';
 
-        EMPLOYEES.forEach((name) => {
+        EMPLOYEES.forEach(name => {
           const option = document.createElement('option');
           option.value = name;
           option.textContent = name;
@@ -392,29 +401,21 @@
       }
 
       async function loadEmployees() {
-        if (!GAS_WEB_APP_URL) {
-          setStatus('スタッフ一覧を取得できません。URLを確認してください。', 'error');
-          employeeNameSelect.innerHTML = '<option value="">取得失敗</option>';
-          return;
-        }
-
         try {
           const url = `${GAS_WEB_APP_URL}?mode=employees`;
-          const response = await fetch(url, { method: 'GET' });
-          const result = await response.json();
+          const res = await fetch(url);
+          const data = await res.json();
 
-          if (!result.ok || !Array.isArray(result.employees)) {
+          if (!data.ok || !Array.isArray(data.employees)) {
             throw new Error('スタッフ一覧の取得に失敗しました。');
           }
 
-          EMPLOYEES = result.employees;
+          EMPLOYEES = data.employees;
           populateEmployees();
-          updateConfirmText();
-        } catch (err) {
+        } catch (e) {
           employeeNameSelect.innerHTML = '<option value="">取得失敗</option>';
           employeeNameSelect.disabled = true;
-          setStatus('スタッフ一覧を読み込めませんでした。', 'error');
-          console.error(err);
+          setStatus('スタッフ一覧を取得できませんでした。', 'error');
         }
       }
 
@@ -431,18 +432,19 @@
         const end = new Date(start);
         end.setDate(start.getDate() + 6);
 
-        confirmText.textContent = `${name} さんとして ${formatDate(start)} 〜 ${formatDate(end)} のシフトを提出します。`;
+        confirmText.textContent =
+          `${name} さんとして ${formatDate(start)} 〜 ${formatDate(end)} のシフトを提出します。`;
       }
 
       function updateRestBadges() {
         for (let i = 0; i < 7; i++) {
-          const startSelect = document.querySelector(`select[name="start-${i}"]`);
-          const endSelect = document.querySelector(`select[name="end-${i}"]`);
+          const start = document.querySelector(`select[name="start-${i}"]`);
+          const end = document.querySelector(`select[name="end-${i}"]`);
           const badge = document.querySelector(`[data-rest-badge="${i}"]`);
 
-          if (!badge || !startSelect || !endSelect) continue;
+          if (!badge || !start || !end) continue;
 
-          if (!startSelect.value && !endSelect.value) {
+          if (!start.value && !end.value) {
             badge.textContent = '休み';
           } else {
             badge.textContent = '出勤';
@@ -490,15 +492,15 @@
 
             <div class="time-row">
               <div>
-                <label class="time-label" for="start-${i}">出勤時間</label>
-                <select class="time-input" id="start-${i}" name="start-${i}">
+                <label class="time-label">出勤時間</label>
+                <select class="time-input" name="start-${i}">
                   ${buildTimeOptions()}
                 </select>
               </div>
 
               <div>
-                <label class="time-label" for="end-${i}">退勤時間</label>
-                <select class="time-input" id="end-${i}" name="end-${i}">
+                <label class="time-label">退勤時間</label>
+                <select class="time-input" name="end-${i}">
                   ${buildTimeOptions()}
                 </select>
               </div>
@@ -509,15 +511,11 @@
         }
 
         for (let i = 0; i < 7; i++) {
-          const startSelect = document.querySelector(`select[name="start-${i}"]`);
-          const endSelect = document.querySelector(`select[name="end-${i}"]`);
+          const start = document.querySelector(`select[name="start-${i}"]`);
+          const end = document.querySelector(`select[name="end-${i}"]`);
 
-          if (startSelect) {
-            startSelect.addEventListener('change', updateRestBadges);
-          }
-          if (endSelect) {
-            endSelect.addEventListener('change', updateRestBadges);
-          }
+          if (start) start.addEventListener('change', updateRestBadges);
+          if (end) end.addEventListener('change', updateRestBadges);
         }
 
         updateRestBadges();
@@ -527,10 +525,15 @@
       function collectPayload() {
         const weekStart = weekStartInput.value;
         const employeeName = employeeNameSelect.value;
+        const employeeCode = employeeCodeInput.value.trim();
         const memo = memoInput.value.trim();
 
         if (!employeeName) {
           throw new Error('氏名を選んでください。');
+        }
+
+        if (!employeeCode) {
+          throw new Error('確認コードを入力してください。');
         }
 
         if (!weekStart) {
@@ -544,11 +547,8 @@
           const date = new Date(start);
           date.setDate(start.getDate() + i);
 
-          const startSelect = document.querySelector(`select[name="start-${i}"]`);
-          const endSelect = document.querySelector(`select[name="end-${i}"]`);
-
-          const startValue = startSelect.value;
-          const endValue = endSelect.value;
+          const startValue = document.querySelector(`select[name="start-${i}"]`).value;
+          const endValue = document.querySelector(`select[name="end-${i}"]`).value;
 
           if ((startValue && !endValue) || (!startValue && endValue)) {
             throw new Error(`${formatDate(date)} は出勤時間と退勤時間をセットで入れてください。`);
@@ -567,6 +567,7 @@
         return {
           submittedAt: new Date().toISOString(),
           employeeName,
+          employeeCode,
           weekStart,
           weekEnd: days[6].date,
           memo,
@@ -582,18 +583,30 @@
         }
 
         statusEl.textContent = message;
-        statusEl.className = `status show ${type}`.trim();
+        statusEl.className = `status show ${type}`;
       }
 
       async function submitToGAS(payload) {
-        await fetch(GAS_WEB_APP_URL, {
+        const res = await fetch(GAS_WEB_APP_URL, {
           method: 'POST',
-          mode: 'no-cors',
           headers: { 'Content-Type': 'text/plain;charset=utf-8' },
           body: JSON.stringify(payload)
         });
 
-        return true;
+        let result = null;
+        try {
+          result = await res.json();
+        } catch (e) {
+          result = null;
+        }
+
+        if (!res.ok) {
+          throw new Error('送信に失敗しました。');
+        }
+
+        if (result && result.ok === false) {
+          throw new Error(result.error || '送信に失敗しました。');
+        }
       }
 
       function resetFormPreserveEmployees() {
@@ -603,78 +616,27 @@
         createWeekRows('');
       }
 
-      function fillSample() {
-        if (!weekStartInput.value) {
-          const today = new Date();
-          const monday = getMonday(isoDate(today));
-          weekStartInput.value = isoDate(monday);
-          createWeekRows(weekStartInput.value);
-        }
-
-        if (EMPLOYEES.length > 0) {
-          employeeNameSelect.value = EMPLOYEES[0];
-        }
-
-        memoInput.value = '水曜は少し遅れる可能性があります。';
-
-        const setWorkingDay = (i, startValue, endValue) => {
-          const startSelect = document.querySelector(`select[name="start-${i}"]`);
-          const endSelect = document.querySelector(`select[name="end-${i}"]`);
-
-          if (startSelect && endSelect) {
-            startSelect.value = startValue;
-            endSelect.value = endValue;
-          }
-        };
-
-        setWorkingDay(0, '09:00', '18:00');
-        setWorkingDay(2, '13:00', '22:00');
-        setWorkingDay(4, '09:00', '17:00');
-        updateRestBadges();
-        updateConfirmText();
-      }
-
-      function runSelfTests() {
-        const options = buildTimeOptions();
-        console.assert(options.includes('06:00'), '06:00 が候補に含まれるべきです');
-        console.assert(options.includes('34:00'), '34:00 が候補に含まれるべきです');
-        console.assert(!options.includes('34:30'), '34:30 は候補に含まれないべきです');
-
-        const testDate = new Date('2026-03-10T00:00:00');
-        console.assert(isoDate(testDate) === '2026-03-10', 'isoDate の変換結果が想定と違います');
-        console.assert(formatDate(testDate) === '3月10日（火）', 'formatDate の表示結果が想定と違います');
-      }
-
       form.addEventListener('submit', async (e) => {
         e.preventDefault();
-        setStatus('');
 
         try {
           const payload = collectPayload();
-
-          if (!GAS_WEB_APP_URL) {
-            console.log('送信データ', payload);
-            setStatus('保存先URLが未設定のため、今回は送信データを確認用に出しました。', 'info');
-            return;
-          }
 
           setStatus('送信中です…', 'info');
           await submitToGAS(payload);
 
           resetFormPreserveEmployees();
-          setStatus('送信しました。シフト提出が完了しました。', 'success');
+          setStatus('送信しました。', 'success');
         } catch (err) {
           setStatus(err.message || '送信に失敗しました。', 'error');
         }
       });
 
-      fillSampleBtn.addEventListener('click', fillSample);
       employeeNameSelect.addEventListener('change', updateConfirmText);
-      weekStartInput.addEventListener('change', (e) => createWeekRows(e.target.value));
+      weekStartInput.addEventListener('change', e => createWeekRows(e.target.value));
 
       createWeekRows('');
       updateConfirmText();
-      runSelfTests();
       loadEmployees();
     });
   </script>
